@@ -1,5 +1,6 @@
 import boto3
 import os
+from botocore.exceptions import ClientError  # Make sure this import is present
 
 AWS_REGION = 'us-west-2'
 S3_BUCKET_NAME = 'ads-snapshot-storage'
@@ -41,7 +42,11 @@ def save_ad_snapshot_to_s3(bucket_name, aws_region,local_dir):
             else:
                 s3_client.upload_file(full_path, bucket_name, s3_file_name)
                 print(f'file successfully uploaded {s3_file_name}')
-                
+                try:
+                    os.remove(full_path)
+                    print(f"Local file {full_path} has been deleted.")
+                except Exception as e:
+                    print(f"Failed to delete local file {full_path}: {e}")
         
 
 if __name__ == "__main__":
