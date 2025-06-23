@@ -28,6 +28,7 @@ def save_ad_snapshot_to_s3(bucket_name, aws_region,local_dir):
     s3_resource = boto3.resource('s3',region_name = aws_region)
 
     for root,_,files in os.walk(local_dir):
+        root_mtime = str(os.path.getmtime(root))
         for file_name in files:
             full_path = os.path.join(root, file_name)
 
@@ -35,8 +36,8 @@ def save_ad_snapshot_to_s3(bucket_name, aws_region,local_dir):
             if file_name.startswith('.'):
                 continue
 
-            s3_file_name = 'ads-snapshot/'+str(os.path.getmtime(root))+'/'+file_name
-            
+            s3_file_name = 'ads-snapshot/'+root_mtime+'/'+file_name
+
             if check_if_file_exists(bucket_name, s3_file_name):
                 print(f'file already exist {s3_file_name}')
             else:
