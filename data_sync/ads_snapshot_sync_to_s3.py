@@ -1,54 +1,65 @@
 import boto3
 import os
-from botocore.exceptions import ClientError  # Make sure this import is present
+from botocore.exceptions import ClientError 
+import sys
+import cv2
+from io import BytesIO
+
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+print(current_script_dir)
+project_root_dir = os.path.dirname(current_script_dir)
+print(project_root_dir)
+if project_root_dir not in sys.path:
+    sys.path.insert(0, project_root_dir)
+    print(f"DEBUG: Added '{project_root_dir}' to sys.path.")
+
+
+from services.image_processing_service import crop_ad_banner
+
 
 AWS_REGION = 'us-west-2'
 S3_BUCKET_NAME = 'ads-snapshot-storage'
 LOCAL_SOURCE_DIR = '/Users/shireen/Downloads/ad_screenshots/'  # The local folder you want to sync
 S3_TARGET_PREFIX = 'ads-snapshot/'
+TEN_KB = 10 * 1024 # 10 KB = 10 * 1024 bytes
 
+def get_file_name(file_name, count):
+    return f"{file_name}_{count}.jpg"
 
-def check_if_file_exists(bucket_name, file_name):
-    s3_client = boto3.client('s3')
-    
-    try:
-        # Check if the file exists
-        s3_client.head_object(Bucket=bucket_name, Key=file_name)
-        return True  # File exists
-    except ClientError as e:
-        if e.response['Error']['Code'] == '404':
-            return False  # File does not exist
-        else:
-            # Other errors
-            raise
-
+def valid_image_size(buffer):
+    image_bytes = buffer.tobytes()
+    byte_size = len(image_bytes)   
+    return (byte_size > TEN_KB)
 
 def save_ad_snapshot_to_s3(bucket_name, aws_region,local_dir):
     s3_client = boto3.client('s3',region_name = aws_region)
-    s3_resource = boto3.resource('s3',region_name = aws_region)
 
     for root,_,files in os.walk(local_dir):
         root_mtime = str(os.path.getmtime(root))
+
         for file_name in files:
-            full_path = os.path.join(root, file_name)
+            print("file name ", file_name)
+            full_path = os.path.join(root, file_name) 
+            if not file_name.startswith("."):
+                s3_file_name = 'ads-snapshot/'+root_mtime+'/'+file_name
 
-            # Skip hidden files or specific patterns if needed
-            if file_name.startswith('.'):
-                continue
+                # crop the image by finding the red bouding box 
+                cropped_ads = crop_ad_banner(full_path)
+                for i, crop in enumerate(cropped_ads):
+                    success, buffer = cv2.imencode('.jpg', crop)
 
-            s3_file_name = 'ads-snapshot/'+root_mtime+'/'+file_name
-
-            if check_if_file_exists(bucket_name, s3_file_name):
-                print(f'file already exist {s3_file_name}')
-            else:
-                s3_client.upload_file(full_path, bucket_name, s3_file_name)
-                print(f'file successfully uploaded {s3_file_name}')
+                    if success and valid_image_size(buffer):
+                        img_bytes = BytesIO(buffer)
+                        s3_key = get_file_name(s3_file_name, i)
+                        s3_client.upload_fileobj(img_bytes, bucket_name,s3_key, ExtraArgs={'ContentType': 'image/jpeg'})  
+                        print(f'file successfully uploaded {s3_file_name}')
                 try:
                     os.remove(full_path)
                     print(f"Local file {full_path} has been deleted.")
                 except Exception as e:
                     print(f"Failed to delete local file {full_path}: {e}")
-        
+              
+            
 
 if __name__ == "__main__":
     save_ad_snapshot_to_s3(S3_BUCKET_NAME, AWS_REGION, LOCAL_SOURCE_DIR)
