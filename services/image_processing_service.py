@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 def crop_ad_banner(image_path):
-    print("image path is ",image_path)
+    print("Cropping ads from the image",image_path)
     img = cv2.imread(image_path)
     original = img.copy()
     if img is None:
