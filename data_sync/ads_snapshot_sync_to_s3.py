@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+
+
 import boto3
 import os
 from botocore.exceptions import ClientError 
@@ -79,6 +83,7 @@ def save_ad_snapshot_to_s3(bucket_name, aws_region,local_dir):
 
                 # crop the image by finding the red bouding box 
                 cropped_ads = crop_ad_banner(full_path)
+                print(f"----------- Start of Image Cropping {s3_file_name} --------")
                 for i, crop in enumerate(cropped_ads):
                     success, buffer = cv2.imencode('.jpg', crop)
 
@@ -89,13 +94,14 @@ def save_ad_snapshot_to_s3(bucket_name, aws_region,local_dir):
                                                  ExtraArgs={'ContentType': 'image/jpeg','Metadata': {'creation-time': str(get_file_creation_date(full_path)), # Corrected key and value type
                                                                                                      'source-site': parent_dir 
                                                                                                      }})         # Corrected key (assuming parent_dir is already a string)}}
-                                                                                                       
                         print(f'file successfully uploaded {s3_file_name}')
                 try:
                     os.remove(full_path)
                     print(f"Local file {full_path} has been deleted.")
                 except Exception as e:
                     print(f"Failed to delete local file {full_path}: {e}")
+                print(f"----------- End of Image Cropping {s3_file_name} --------")
+
               
             
 
