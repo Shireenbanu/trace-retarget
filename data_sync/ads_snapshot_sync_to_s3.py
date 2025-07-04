@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-
+#!/Users/shireen/Documents/trace-retarget/ad-env/bin/python3
 
 import boto3
 import os
@@ -9,7 +7,6 @@ import sys
 import cv2
 from io import BytesIO
 from datetime import datetime
-
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
 print(current_script_dir)
 project_root_dir = os.path.dirname(current_script_dir)
