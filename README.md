@@ -8,4 +8,4 @@ cron deamon runs for every 5 minute
 
 Cron script log sample:
 
-![log_sample](output_samples/image.jpg "cron log sample")
+![log_sample](output_samples/image.png "cron log sample")
